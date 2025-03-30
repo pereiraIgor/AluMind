@@ -2,9 +2,12 @@ from flask import Blueprint, jsonify, request, render_template
 from app.models import Post, Feature
 from app import db
 from services.analise_sentimento import analise_sentimentos
+from services.gerar_email import gerar_texto_email
 from .validators import validate_feedback_request 
 from flask import current_app
 from sqlalchemy import func
+from datetime import datetime, timedelta, timezone
+
 
 bp = Blueprint('main', __name__)
 
@@ -74,15 +77,12 @@ def feedbacks():
 
 @bp.route('/relatorio')
 def relatorio():
-    
     posts = Post.query.all()
     total_posts = len(posts)
     
-    # Calcula porcentagem de feedbacks positivos
     positivos = Post.query.filter_by(sentiment='POSITIVO').count()
     porcentagem_positivos = (positivos / total_posts * 100) if total_posts > 0 else 0
     
-    # Features mais mencionadas (agrupa por 'code' e conta ocorrências)
     top_features = (
         db.session.query(
             Feature.code,
@@ -101,3 +101,47 @@ def relatorio():
         top_features=top_features,
         total_posts=total_posts
     )
+
+@bp.route('/enviar-relatorio-semanal')
+def enviar_relatorio_semanal():
+    data_fim = datetime.now(timezone.utc)
+    data_inicio = data_fim - timedelta(days=7)
+
+    posts = Post.query.filter(Post.date_posted.between(data_inicio, data_fim)).all()
+    total_posts = len(posts)
+
+    positivos = sum(1 for post in posts if post.sentiment == 'POSITIVO')
+    negativos = sum(1 for post in posts if post.sentiment == 'NEGATIVO')
+    porcentagem_positivos = (positivos / total_posts * 100) if total_posts > 0 else 0
+    porcentagem_negativos = (negativos / total_posts * 100) if total_posts > 0 else 0
+
+    top_features = [
+        {"code": f[0], "total": f[1]}  
+        for f in db.session.query(
+            Feature.code,
+            func.count(Feature.code).label('total')
+        )
+        .filter(Feature.post_id.in_([post.id for post in posts]))
+        .group_by(Feature.code)
+        .order_by(func.count(Feature.code).desc())
+        .limit(3)
+        .all()
+    ]
+    texto_email = gerar_texto_email(
+        porcentagem_positivos,
+        porcentagem_negativos,
+        top_features,
+        current_app.config['OPENROUTER_API_KEY']
+    )
+    return texto_email
+
+    # 6. Envia o e-mail
+    # enviar_email(
+    #     destinatarios=["stakeholder1@email.com", "stakeholder2@email.com"],
+    #     assunto=f"Relatório Semanal de Feedbacks - {data_fim.strftime('%d/%m/%Y')}",
+    #     corpo=texto_email
+    # )
+
+    return "E-mail enviado com sucesso!"
+
+

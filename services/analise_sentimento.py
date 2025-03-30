@@ -1,35 +1,10 @@
 import json
 import requests
-from typing import Dict, Any
+from typing import Dict, Any, List
+from app.utils.api_client import chamada_api_llm
 
-def analise_sentimentos(feedback_text: str, api_key: str) -> Dict[str, Any]:
-    """
-    Analisa o sentimento de um texto usando a API OpenRouter.
-    
-    Args:
-        feedback_text: Texto a ser analisado
-        api_key: Chave de API do OpenRouter
-    
-    Returns:
-        Dicionário com análise de sentimento e features identificadas
-    
-    Raises:
-        Exception: Em caso de erros na API ou processamento
-    """
-    try:
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "http://localhost",
-            "X-Title": "AluMind"
-        }
-        
-        payload = {
-            "model": "deepseek/deepseek-chat-v3:free",
-            "messages": [
-                {
-                    "role": "system",
-                    "content": """Você é um analisador de sentimentos especializado. Siga estas regras:
+def analise_sentimentos(feedback_text: str, api_key: str):
+    INSTRUCOES_SISTEMA = """Você é um analisador de sentimentos especializado. Siga estas regras:
                         1. CLASSIFIQUE o sentimento geral como: POSITIVO, NEGATIVO, INCONCLUSIVO 
 
                         2. IDENTIFIQUE todos os recursos/funcionalidades mencionados (features), extraindo:
@@ -53,29 +28,20 @@ def analise_sentimentos(feedback_text: str, api_key: str) -> Dict[str, Any]:
                             "description": "Tempo de carregamento aumentou"
                             }
                         ]
-                        }"""
-                },
-                {
-                    "role": "user",
-                    "content": feedback_text
-                }
-            ],
-            "response_format": {"type": "json_object"},
-            "temperature": 0.3 
-        }
+                        }""" 
 
-        response = requests.post(
-            url="https://openrouter.ai/api/v1/chat/completions",
-            headers=headers,
-            json=payload,
-            timeout=20
+    try:
+        # Chamada única à API
+        resposta = chamada_api_llm(
+            prompt=feedback_text,
+            api_key=api_key,
+            instrucoes_sistema=INSTRUCOES_SISTEMA
         )
-
-        response.raise_for_status()
-        result = response.json()
-
-        message_content = result['choices'][0]['message']['content']
-
+        
+        # Processamento específico para análise de sentimentos
+        message_content = resposta['choices'][0]['message']['content']
+        
+        # Limpeza do conteúdo
         if '```json' in message_content:
             message_content = message_content.split('```json')[1].split('```')[0].strip()
         elif '```' in message_content:
@@ -83,27 +49,23 @@ def analise_sentimentos(feedback_text: str, api_key: str) -> Dict[str, Any]:
         content = json.loads(message_content)
 
         if not isinstance(content.get('sentiment'), str) or not isinstance(content.get('features'), list):
-            raise ValueError("Estrutura de resposta inválida da API")
+            raise ValueError("Estrutura de resposta inválida")
 
-        features = []
-        for feature in content['features']:
-            try:
-                features.append({
-                    'code': feature.get('code', 'NO_FEATURE'),
-                    'description': feature.get('description', 'Descrição não fornecida')
-                })
-            except (AttributeError, TypeError):
-                continue
+        features = [
+            {
+                'code': f.get('code', 'NO_FEATURE'),
+                'description': f.get('description', 'Descrição não fornecida')
+            }
+            for f in content['features'] if isinstance(f, dict)
+        ]
 
         return {
             'sentiment': content['sentiment'].upper(),
             'features': features,
-            'analysis_id': result['id']
+            'analysis_id': resposta['id']
         }
 
     except json.JSONDecodeError as e:
-        raise Exception(f"Falha ao decodificar JSON: {str(e)}\nConteúdo problemático: {json_content}")
-    except requests.exceptions.RequestException as e:
-        raise Exception(f"Erro na requisição à API: {str(e)}")
+        raise Exception(f"Falha ao decodificar JSON: {str(e)}")
     except Exception as e:
-        raise Exception(f"Erro inesperado: {str(e)}")
+        raise Exception(f"Erro na análise: {str(e)}")
