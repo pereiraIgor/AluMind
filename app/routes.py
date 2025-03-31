@@ -7,6 +7,7 @@ from .validators import validate_feedback_request
 from flask import current_app
 from sqlalchemy import func
 from datetime import datetime, timedelta, timezone
+from services.gerar_email import enviar_email
 
 
 bp = Blueprint('main', __name__)
@@ -33,8 +34,6 @@ def feedbacks():
     try:
         analysis_result = analise_sentimentos(feedback, current_app.config['OPENROUTER_API_KEY'])
     
-        # print("Análise retornada:", analysis_result)
-        
         post = Post(
             id=id,
             text=feedback,
@@ -102,46 +101,91 @@ def relatorio():
         total_posts=total_posts
     )
 
-@bp.route('/enviar-relatorio-semanal')
+@bp.route('/relatorio-semanal', methods=['GET', 'POST'])
 def enviar_relatorio_semanal():
-    data_fim = datetime.now(timezone.utc)
-    data_inicio = data_fim - timedelta(days=7)
+    """Rota que pode ser usada para visualizar e enviar o relatório"""
+    try:
+        data_fim = datetime.now()
+        data_inicio = data_fim - timedelta(days=7)
 
-    posts = Post.query.filter(Post.date_posted.between(data_inicio, data_fim)).all()
-    total_posts = len(posts)
+        posts = Post.query.filter(
+            Post.date_posted.between(data_inicio, data_fim)
+        ).all()
+        
+        total_posts = len(posts)
+        positivos = sum(1 for post in posts if post.sentiment == 'POSITIVO')
+        negativos = sum(1 for post in posts if post.sentiment == 'NEGATIVO')
+        
+        porcentagem_positivos = (positivos / total_posts * 100) if total_posts > 0 else 0
+        porcentagem_negativos = (negativos / total_posts * 100) if total_posts > 0 else 0
 
-    positivos = sum(1 for post in posts if post.sentiment == 'POSITIVO')
-    negativos = sum(1 for post in posts if post.sentiment == 'NEGATIVO')
-    porcentagem_positivos = (positivos / total_posts * 100) if total_posts > 0 else 0
-    porcentagem_negativos = (negativos / total_posts * 100) if total_posts > 0 else 0
+        top_features = [
+            {"code": f[0], "total": f[1], "description": f[2] or "Sem descrição"}
+            for f in db.session.query(
+                Feature.code,
+                func.count(Feature.code).label('total'),
+                func.max(Feature.reason).label('reason')  # Alterado para 'reason'
+            )
+            .filter(Feature.post_id.in_([p.id for p in posts]))
+            .group_by(Feature.code)
+            .order_by(func.count(Feature.code).desc())
+            .limit(3)
+            .all()
+        ]
 
-    top_features = [
-        {"code": f[0], "total": f[1]}  
-        for f in db.session.query(
-            Feature.code,
-            func.count(Feature.code).label('total')
+        # 2. Gera o texto do e-mail (usando o serviço)
+        texto_email = gerar_texto_email(
+            porcentagem_positivos,
+            porcentagem_negativos,
+            top_features,
+            current_app.config['OPENROUTER_API_KEY']
         )
-        .filter(Feature.post_id.in_([post.id for post in posts]))
-        .group_by(Feature.code)
-        .order_by(func.count(Feature.code).desc())
-        .limit(3)
-        .all()
-    ]
-    texto_email = gerar_texto_email(
-        porcentagem_positivos,
-        porcentagem_negativos,
-        top_features,
-        current_app.config['OPENROUTER_API_KEY']
-    )
-    return texto_email
 
-    # 6. Envia o e-mail
-    # enviar_email(
-    #     destinatarios=["stakeholder1@email.com", "stakeholder2@email.com"],
-    #     assunto=f"Relatório Semanal de Feedbacks - {data_fim.strftime('%d/%m/%Y')}",
-    #     corpo=texto_email
-    # )
+        assunto = f"Relatório Semanal de Feedbacks - {data_fim.strftime('%d/%m/%Y')}"
 
-    return "E-mail enviado com sucesso!"
+        # 3. Se for POST, envia o e-mail
+        if request.method == 'POST':                    
+            enviar_email(
+                    destinatarios=["igor.pereira@ccc.ufcg.edu.br"],
+                    assunto=f"Relatório Semanal - {data_fim.strftime('%d/%m/%Y')}",
+                    corpo=texto_email
+                )
+            return jsonify({
+                "status": "sucesso",
+                "mensagem": "E-mail enviado com sucesso",
+                "assunto": assunto})
 
 
+        # 4. Se for GET, mostra o preview
+        return jsonify({
+            "status": "preview",
+            "assunto": assunto,
+            "corpo_email": texto_email,
+            "dados": {
+                "data_inicio": data_inicio.strftime('%Y-%m-%d'),
+                "data_fim": data_fim.strftime('%Y-%m-%d'),
+                "porcentagem_positivos": porcentagem_positivos,
+                "porcentagem_negativos": porcentagem_negativos,
+                "top_features": top_features
+            }
+        })
+
+    except Exception as e:
+        current_app.logger.error(f"Erro no relatório: {str(e)}")
+        return jsonify({
+            "status": "erro",
+            "mensagem": str(e)
+        }), 500
+
+@bp.route('/testar-email')
+def testar_email():
+    try:
+        enviar_email(
+            destinatarios=["igor.pereira@ccc.ufcg.edu.br"],
+            assunto="Teste do AluMind",
+            corpo="Funcionou! Seu sistema de e-mails está operacional.",
+            html="<h1>Sucesso!</h1><p>O envio de e-mails está configurado corretamente.</p>"
+        )
+        return "E-mail de teste disparado!"
+    except Exception as e:
+        return f"Erro: {str(e)}", 500

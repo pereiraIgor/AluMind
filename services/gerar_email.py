@@ -1,5 +1,16 @@
 from typing import Dict, Any, List
 from app.utils.api_client import chamada_api_llm
+from datetime import datetime,timedelta
+from flask import current_app, copy_current_request_context
+
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import smtplib
+from threading import Thread
+
+from dotenv import load_dotenv
+import os
+load_dotenv()
 
 def gerar_texto_email(
     porcentagem_positivos: float,
@@ -42,3 +53,44 @@ def gerar_texto_email(
         return resposta['choices'][0]['message']['content']
     except Exception as e:
         raise Exception(f"Falha ao gerar e-mail: {str(e)}")
+
+
+def enviar_email(destinatarios, assunto, corpo, html=None):
+  
+    smtp_server = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
+    smtp_port = int(os.getenv('MAIL_PORT', 587))
+    username = os.getenv('MAIL_USERNAME')
+    password = os.getenv('MAIL_PASSWORD')
+    sender = os.getenv('MAIL_DEFAULT_SENDER', 'noreply@alumind.com')
+    
+    if not all([smtp_server, username, password]):
+            raise Exception("Configuração de e-mail incompleta")
+
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = assunto
+    msg['From'] = sender
+    msg['To'] = ", ".join(destinatarios) if isinstance(destinatarios, list) else destinatarios
+
+    part1 = MIMEText(corpo, 'plain')
+    msg.attach(part1)
+    
+    if html:
+        part2 = MIMEText(html, 'html')
+        msg.attach(part2)
+
+    @copy_current_request_context  # Preserva o contexto
+    def enviar_async(app, msg):
+        with app.app_context():  # Cria novo contexto
+            try:
+                with smtplib.SMTP(smtp_server, smtp_port) as server:
+                    server.ehlo()
+                    if current_app.config.get('MAIL_USE_TLS', True):
+                        server.starttls()
+                    server.login(username, password)
+                    server.send_message(msg)
+                    app.logger.info(f"E-mail enviado para {msg['To']}")
+            except Exception as e:
+                app.logger.error(f"Falha ao enviar e-mail: {str(e)}")
+
+    # Passa a app atual para a thread
+    Thread(target=enviar_async, args=(current_app._get_current_object(), msg)).start()
