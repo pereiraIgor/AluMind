@@ -133,7 +133,6 @@ def enviar_relatorio_semanal():
             .all()
         ]
 
-        # 2. Gera o texto do e-mail (usando o serviço)
         texto_email = gerar_texto_email(
             porcentagem_positivos,
             porcentagem_negativos,
@@ -143,7 +142,6 @@ def enviar_relatorio_semanal():
 
         assunto = f"Relatório Semanal de Feedbacks - {data_fim.strftime('%d/%m/%Y')}"
 
-        # 3. Se for POST, envia o e-mail
         if request.method == 'POST':                    
             enviar_email(
                     destinatarios=["igor.pereira@ccc.ufcg.edu.br"],
@@ -155,8 +153,6 @@ def enviar_relatorio_semanal():
                 "mensagem": "E-mail enviado com sucesso",
                 "assunto": assunto})
 
-
-        # 4. Se for GET, mostra o preview
         return jsonify({
             "status": "preview",
             "assunto": assunto,

@@ -29,7 +29,12 @@ Certifique-se de ter os seguintes itens instalados:
     pip install -r requirements.txt
     ```
 
-4. Execute o projeto:
+4: Crie as tabelas:
+    ```bash
+    python create_tables.py
+    ```
+
+5. Execute o projeto:
 
     ```bash
     python run.py
