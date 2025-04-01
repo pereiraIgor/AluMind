@@ -5,7 +5,8 @@ from app.utils.api_client import chamada_api_llm
 
 def analise_sentimentos(feedback_text: str, api_key: str):
     INSTRUCOES_SISTEMA = """Você é um analisador de sentimentos especializado. Siga estas regras:
-                        1. CLASSIFIQUE o sentimento geral como: POSITIVO, NEGATIVO, INCONCLUSIVO 
+                        1. CLASSIFIQUE o sentimento geral como: POSITIVO, NEGATIVO, INCONCLUSIVO ou SPAM
+                        2. SE o feedback for SPAM, retorne um json valido com o sentiment "SPAM" e a feature vazia ([]) e não processe mais nada.
 
                         2. IDENTIFIQUE todos os recursos/funcionalidades mencionados (features), extraindo:
                         - Código único em MAIÚSCULAS (padrão: CATEGORIA_SUBCATEGORIA)
@@ -18,7 +19,8 @@ def analise_sentimentos(feedback_text: str, api_key: str):
                         IMPORTANTE: 
                         - Não inclua vírgulas após o último elemento de objetos/arrays
                         - Mantenha a sintaxe JSON válida
-
+                        - Não use emojis ou linguagem informal
+                        
                         Exemplo CORRETO:
                         {
                         "sentiment": "POSITIVO",
@@ -31,17 +33,14 @@ def analise_sentimentos(feedback_text: str, api_key: str):
                         }""" 
 
     try:
-        # Chamada única à API
         resposta = chamada_api_llm(
             prompt=feedback_text,
             api_key=api_key,
             instrucoes_sistema=INSTRUCOES_SISTEMA
         )
         
-        # Processamento específico para análise de sentimentos
         message_content = resposta['choices'][0]['message']['content']
-        
-        # Limpeza do conteúdo
+
         if '```json' in message_content:
             message_content = message_content.split('```json')[1].split('```')[0].strip()
         elif '```' in message_content:

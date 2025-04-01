@@ -1,14 +1,21 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 import atexit
-from flask import Flask
+import werkzeug
+from importlib.metadata import version
+import os
+
+if not hasattr(werkzeug, '__version__'):
+    werkzeug.__version__ = version("werkzeug")
 
 scheduler = BackgroundScheduler(daemon=True)
 
 def init_scheduler(app):
-    hour = 20
-    minute = 59
-    
+    if os.environ.get("FLASK_RUN_FROM_CLI") != "true" and os.environ.get("WERKZEUG_RUN_MAIN") != "true":
+        return
+    hour = 22
+    minute = 38
+    day_of_week = 'mon'
     scheduler.remove_all_jobs()
     
     scheduler.add_job(
@@ -16,7 +23,7 @@ def init_scheduler(app):
         func=enviar_relatorio_agendado,
         args=[app],
         trigger=CronTrigger(
-            day_of_week='sun',
+            day_of_week=day_of_week,
             hour=hour,
             minute=minute,
             timezone='America/Sao_Paulo'
@@ -25,8 +32,10 @@ def init_scheduler(app):
     )
     
     scheduler.start()
+    for job in scheduler.get_jobs():
+        app.logger.info(f"Job ativo: {job.id} - {job.next_run_time}")
     atexit.register(lambda: scheduler.shutdown())
-    app.logger.info(f"Agendador iniciado - Relatório semanal configurado para domingos às {hour}:{minute} (UTC-3)")
+    app.logger.info(f"Agendador iniciado - Relatório semanal configurado para segunda às {hour}:{minute} (UTC-3)")
 
 def enviar_relatorio_agendado(app):
     """Função que será chamada pelo agendador"""

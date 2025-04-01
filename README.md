@@ -9,6 +9,12 @@ Certifique-se de ter os seguintes itens instalados:
 - [Docker](https://www.docker.com/get-started)
 - [Docker Compose](https://docs.docker.com/compose/install/)
 
+Além disso, obtenha uma chave de API do [OpenRouter](https://openrouter.ai/) para habilitar o uso do LLM. Após obter a chave, adicione-a ao arquivo `.env` no seguinte formato:
+
+```env
+OPENROUTER_API_KEY=sua_chave_aqui
+```
+
 ## Como executar o projeto
 
 1. Clone o repositório:
@@ -23,7 +29,13 @@ Certifique-se de ter os seguintes itens instalados:
     cd AluMind/
     ```
 
-3. Execute o projeto com Docker Compose:
+3. Copie as Variaveis de Ambiente e Configure as variáveis de ambiente:
+
+    ```bash
+    cp .env.example .env
+    ```
+
+4. Execute o projeto com Docker Compose:
 
     ```bash
     docker compose up --build

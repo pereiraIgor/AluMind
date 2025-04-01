@@ -33,7 +33,13 @@ def feedbacks():
 
     try:
         analysis_result = analise_sentimentos(feedback, current_app.config['OPENROUTER_API_KEY'])
-    
+
+        if analysis_result.get('sentiment') == 'SPAM':
+            return jsonify({
+                "status": "error",
+                "message": "Feedback identificado como SPAM e não foi processado."
+            }), 400
+        
         post = Post(
             id=id,
             text=feedback,

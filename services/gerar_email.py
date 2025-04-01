@@ -31,8 +31,8 @@ def gerar_texto_email(
     2. Destaque os pontos positivos e negativos.
     3. Explique a importância de cada feature (seja conciso).
     4. Chamada para ação (ex.: "Vamos priorizar X na próxima sprint?")
-    5. Coloque a data do relatório no final do e-mail.
-    6. Assinatura padrão da empresa.
+    5. Não Coloque Data Alguma.
+    6. Assinatura padrão da empresa (Atenciosamente, Equipe Alumind).
     7. Não use emojis ou linguagem informal.
     """
 
