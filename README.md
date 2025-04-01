@@ -6,8 +6,8 @@ AluMind é uma startup que oferece um aplicativo focado em bem-estar e saúde me
 
 Certifique-se de ter os seguintes itens instalados:
 
-- [Python](https://www.python.org/downloads/)
-- [PostgreSQL](https://www.postgresql.org/download/)
+- [Docker](https://www.docker.com/get-started)
+- [Docker Compose](https://docs.docker.com/compose/install/)
 
 ## Como executar o projeto
 
@@ -23,22 +23,13 @@ Certifique-se de ter os seguintes itens instalados:
     cd AluMind/
     ```
 
-3. Instale as dependências:
+3. Execute o projeto com Docker Compose:
 
     ```bash
-    pip install -r requirements.txt
+    docker compose up --build
     ```
 
-4: Crie as tabelas:
-    ```bash
-    python create_tables.py
-    ```
-
-5. Execute o projeto:
-
-    ```bash
-    python run.py
-    ```
+O projeto estará disponível assim que os containers forem inicializados.
 
 ## Endpoints disponíveis
 
