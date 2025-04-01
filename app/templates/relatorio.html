@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Relatório de Feedbacks</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
+        th { background-color: #f4f4f4; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .metrics { margin-bottom: 30px; }
+    </style>
+</head>
+<body>
+    <h1>Relatório de Feedbacks</h1>
+    
+    <div class="metrics">
+        <h2>📊 Métricas Gerais</h2>
+        <p>Total de feedbacks: <strong>{{ total_posts }}</strong></p>
+        <p>Feedbacks positivos: <strong>{{ porcentagem_positivos }}%</strong></p>
+    </div>
+    
+    <div class="metrics">
+        <h2>🌟 Features Mais Pedidas</h2>
+        <ul>
+            {% for feature in top_features %}
+                <li><strong>{{ feature.code }}</strong> ({{ feature.total }} solicitações)</li>
+            {% endfor %}
+        </ul>
+    </div>
+    
+    <h2>📝 Detalhes dos Feedbacks</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Data</th>
+                <th>Texto</th>
+                <th>Sentimento</th>
+                <th>Features Relacionadas</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for post in posts %}
+                <tr>
+                    <td>{{ post.id }}</td>
+                    <td>{{ post.date_posted.strftime('%d/%m/%Y %H:%M') }}</td>
+                    <td>{{ post.text }}</td>
+                    <td style="color: {% if post.sentiment == 'POSITIVO' %}green{% elif post.sentiment == 'NEGATIVO' %}red{% else %}orange{% endif %};">
+                        {{ post.sentiment }}
+                    </td>
+                    <td>
+                        {% for feature in post.features %}
+                            <strong>{{ feature.code }}</strong>: {{ feature.reason }}<br>
+                        {% endfor %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
