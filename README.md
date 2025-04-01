@@ -29,19 +29,23 @@ OPENROUTER_API_KEY=sua_chave_aqui
     cd AluMind/
     ```
 
-3. Copie as Variaveis de Ambiente e Configure as variáveis de ambiente:
+3. Copie e configure as variáveis de ambiente.(Use um editor de texto a sua escolha):
 
     ```bash
     cp .env.example .env
     ```
+    4. Execute o projeto com Docker Compose:
 
-4. Execute o projeto com Docker Compose:
+        ```bash
+        docker compose up --build
+        ```
 
-    ```bash
-    docker compose up --build
-    ```
+        **Observação:** É possivel que seu Docker Compose nao esteja com as configuraçoes de adminstrador (SUDO), pode ser necessário executar o comando com permissões de administrador.
 
 O projeto estará disponível assim que os containers forem inicializados.
+
+## Executado em Linux Ubuntu
+Este projeto foi executado com sucesso em um sistema Linux Ubuntu. Certifique-se de que o Docker e o Docker Compose estão corretamente instalados e configurados, conforme os requisitos mencionados acima.
 
 ## Endpoints disponíveis
 
