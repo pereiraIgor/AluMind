@@ -1,0 +1,30 @@
+Olá, Igor!
+Como está?
+Primeiramente, gostaríamos de agradecer por ter dedicado seu tempo e esforço para participar do nosso processo seletivo e completar o teste técnico. Infelizmente,  não foi póssível prosseguir com a sua candidatura para a próxima fase do processo seletivo.
+Gostaríamos de fornecer um feedback detalhado para ajudá-lo a entender os pontos e áreas onde podem haver melhorias.
+README
+É fácil conseguir rodar o projeto a partir das instruções do README?
+Durante a execução do teste técnico, identificamos alguns pontos que dificultaram a correta configuração e uso do projeto. Os pontos observados foram:
+O README não inclui detalhes sobre o .env e as informações necessárias.
+O README não incluiu os passos necessários sobre como configurar e utilizar o envio de emails. Isso tornou o processo de configuração mais complicado.
+O container do Postgres estava corretamente configurado com as variáveis POSTGRES_DB, POSTGRES_USER e POSTGRES_PASSWORD, mas a aplicação exigia uma variável com a URL completa de conexão (DATABASE_URL), que não foi definida no docker-compose.yml nem mencionada no README. Isso dificultou a execução do projeto, exigindo intervenção manual. Incluir essa variável diretamente na configuração ou documentá-la no README teria facilitado a execução.
+Feature 1 - Classificação de Feedbacks
+Muitas responsabilidades acopladas no endpoint
+O endpoint /feedbacks faz desde a validação até o salvamento e resposta. Isso dificulta manutenção e testes. Seria melhor separar em camadas, como services, utils, schemas, etc.
+Nomenclatura e inconsistência de idioma
+O uso da variável post para representar um feedback pode confundir. Além disso, há mistura de português e inglês em nomes de funções e variáveis, como analise_sentimentos. Isso prejudica a leitura e manutenção do código. Ideal manter tudo em um único idioma.
+Prompt da LLM pouco robusto e inconsistências no parsing da resposta
+O prompt poderia ser mais completo, com exemplos variados (few-shots) e instruções mais claras sobre como o modelo deve responder em casos ambíguos ou com múltiplas features. Além disso, há inconsistência nos nomes das chaves, no prompt é usado description, mas no código também é tratado como reason, o que pode causar ambiguidade. Seria interessante também a utilização de um schema explícito para validar e assegurar que a LLM retornou uma resposta válida.
+Feature 2 - Relatório
+Falta de separação entre lógica de negócio e apresentação
+Toda a lógica de agregação e cálculo está dentro da rota. Isso funciona, mas não escala bem. Idealmente, isso deveria estar em uma camada de serviço (report_service.py), e a view apenas chamaria essa função.
+Feature 3 - Resumo semanal
+Lógica de geração de relatório muito acoplada à rota
+A rota /relatorio-semanal está realizando toda a lógica de agregação, formatação e disparo do e-mail. Seria melhor delegar isso para um serviço e manter a view mais limpa.
+Critérios do prompt pouco controlados
+As instruções no prompt tentam guiar a LLM, mas não impõem estrutura clara nem validam a presença dos elementos exigidos. Poderia ser melhorado com few-shots exemplificando um modelo de email.
+Feature 4 - (Bônus - Não obrigatório)
+A AluMind é uma plataforma focada em saúde mental e bem-estar, portanto feedbacks que não tenham relação com esse contexto, como “gostei muito desse imóvel, também deveriam ser classificados como SPAM. O prompt ignora esse aspecto e não deixa claro o que é irrelevante para o domínio da aplicação. Faltam exemplos concretos e instruções específicas para ajudar a LLM a filtrar melhor os conteúdos fora do escopo.
+Avaliação geral dos prompts
+Os prompts poderiam fornecer mais contexto sobre o que é o Alumind, o que ajudaria o modelo a gerar respostas mais alinhadas com os objetivos.
+Esperamos que este feedback possa ajudá-lo a identificar áreas de melhoria e a se preparar melhor para futuras oportunidades.
